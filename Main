@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+// change this value to change # of iterations
+const int ITS=1e6;
+
+mt19937 rng(998244353);
+
+vector<pair<int,int>> prueferDecode(vector<int> code) {
+        int N=code.size()+2;
+        vector<int> deg(N);
+        for(int i=0;i<N;i++) deg[i]++;
+        for(int i=0;i<N-2;i++) deg[code[i]]++;
+
+        set<int> leafs;
+        for(int i=0;i<N;i++) {
+                if(deg[i]==1) {
+                        leafs.insert(i);
+                }
+        }
+
+        vector<pair<int,int>> edge;
+
+        for(int i=0;i<N-2;i++) {
+                int v=*leafs.begin();
+                edge.push_back({v,code[i]});
+                deg[code[i]]--;
+                if(deg[code[i]]==1) leafs.insert(code[i]);
+                leafs.erase(v);
+        }
+        edge.push_back({*leafs.begin(),N-1});
+
+        return edge;
+}
+
+int N;
+
+vector<int> curCode;
+
+// NP[E] denotes count of the set of edges E after running algorithm 1
+// MP[E] denotes count of the set of edges E after running algorithm 4
+map<vector<pair<int,int>>, int> mp, id, np;
+
+int pt=1;
+
+void genAll() { // N^(N-2) possible trees
+        if(curCode.size()==N-2) {
+                vector<pair<int,int>> tree=prueferDecode(curCode);
+                for(auto &[x,y]:tree) {
+                        if(x>y) swap(x,y);
+                }
+                sort(tree.begin(),tree.end());
+                mp[tree]=0;
+                id[tree]=pt++;
+                return;
+        }
+        for(int j=0;j<N;j++) {
+                curCode.push_back(j);
+                genAll();
+                curCode.pop_back();
+        }
+}
+
+void Algorithm4() {
+        vector<int> randCode;
+        for(int i=0;i<N-2;i++) randCode.push_back(rng()%N);
+        vector<pair<int,int>> tree=prueferDecode(randCode);
+        for(auto &[x,y]:tree) {
+                if(x>y) swap(x,y);
+        }
+        sort(tree.begin(),tree.end());
+        mp[tree]+=1;
+}
+
+void Algorithm1() {
+        vector<pair<int,int>> edges;
+
+        for(int i=1;i<N;i++) {
+                int x=rng()%i;
+                edges.push_back({x,i});
+        }
+        sort(edges.begin(),edges.end());
+
+        np[edges]+=1;
+}
+
+int main() {
+        cin.tie(0); ios_base::sync_with_stdio(0);
+
+        cin>>N;
+
+        // to label the trees
+        genAll();
+
+        for(int iters=0;iters<=ITS;iters++) {
+                Algorithm4();
+        }
+
+        for(int iters=0;iters<=ITS;iters++) {
+                Algorithm1();
+        }
+
+        for(auto [edges, cnt]:mp) {
+                printf("$T_{%d}$ & %d & %d\\\\ \n",id[edges],np[edges],cnt);
+        }
+}
